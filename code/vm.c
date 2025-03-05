@@ -3,11 +3,24 @@
 #include "vm.h"
 #include "stdio.h"
 #include "debug.h"
-
+#include "stdarg.h"
 VM vm;
 
 static void resetStack(){
   vm.stackTop = vm.stack;
+}
+
+static void runtimeError(const char* format, ...){
+  va_list args;
+  va_start(args, format);
+  vfprintf(stderr, format, args);
+  va_end(args);
+  fputs("\n", stderr);
+
+  size_t instruction = vm.ip - vm.chunk->code - 1;
+  int line = vm.chunk->lines[instruction];
+  fprintf(stderr, "[line %d] in script\n", line);
+  resetStack();
 }
 
 void push(Value value){
@@ -16,6 +29,13 @@ void push(Value value){
 
 Value pop(){
   return *(--vm.stackTop);
+}
+Value peek(int distance){
+  return vm.StackTop[-1 - distance];
+}
+
+static bool isFalsey(Value value){
+  return IS_NIL(value) || (IS_BOOL(value)) && !AS_BOOL(value);
 }
 
 void initVM(){
@@ -28,11 +48,15 @@ void freeVM(){
 static InterpretResult run(){
   #define READ_BYTE() (*vm.ip++)
   #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()]) 
-  #define BINARY_OP(op) \
+  #define BINARY_OP(valueType,op) \
     do{ \
-    double a = pop(); \
-    double b = pop(); \
-    push(b op a); \
+    if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))){ \
+      runtimeError("Opperant must be a number."); \
+      return INTERPRET_COMPILE_ERROR; \
+    } \
+    double a = AS_NUMBER(pop()); \
+    double b = AS_NUMBER(pop()); \
+    push(valueType(b op a)); \
     }while(false)
 
   for(;;){
@@ -52,11 +76,28 @@ static InterpretResult run(){
         Value constant = READ_CONSTANT();
         push(constant);
       break;
-      case OP_NEGATE: push(-pop()); break;
-      case OP_ADD: BINARY_OP(+); break;
-      case OP_SUBTRACT: BINARY_OP(-); break;
-      case OP_MULTIPLY: BINARY_OP(*); break;
-      case OP_DEVIDE: BINARY_OP(/); break;
+      case OP_NIL: push(NIL_VAL); break;
+      case OP_TRUE: push(BOOL_VAL(true)); break;
+      case OP_FALSE: push(BOOL_VAL(false)); break;
+      case OP_NEGATE:
+        if(!IS_NUMBER(peek(0))){
+          runtimeError("Operrand must be a number.");
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        push(NUMBER_VAL(-AS_NUMBER(pop())));
+        break;
+      case OP_NOT: push(BOOL_VAL(isFalsey(pop())));
+      case OP_ADD: BINARY_OP(NUMBER_VAL, +); break;
+      case OP_SUBTRACT: BINARY_OP(NUMBER_VAL, -); break;
+      case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
+      case OP_DEVIDE: BINARY_OP(NUMBER_VAL, /); break;
+      case OP_EQUAL:
+        Value b = pop();
+        Value a = pop();
+        push(BOOL_VAL(ValuesEqual(a, b)));
+        break;
+      case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
+      case OP_LESS: BINARY_OP(BOOL_VAL, <); break;
       case OP_RETURN:
         printValue(pop());
         printf("\n");
