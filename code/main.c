@@ -4,7 +4,7 @@
 #include "stdio.h"
 #include "vm.h"
 #include "stdlib.h"
-#include "string"
+#include "string.h"
 
 static char* readFile(const char* path){
   FILE* file = fopen(path, "rb");
@@ -13,7 +13,7 @@ static char* readFile(const char* path){
     exit(74);
   }
   fseek(file, 0L, SEEK_END);
-  size_t = fileSize = ftell(file);
+  size_t fileSize = ftell(file);
   rewind(file);
   char* buffer = (char*)malloc(fileSize+1);
   if(buffer == NULL){
@@ -46,8 +46,8 @@ static void runFile(const char* path){
   InterpretResult result = interpret(source);
   free(source);
 
-  if(result == INTERPRET_COMPILE_ERROR) exit(65);
-  if(result == INTERPRET_RUNTIME_ERROR) exit(70);
+  if(result == INTERPRET_COMPILER_ERR) exit(65);
+  if(result == INTERPRET_RUNTIME_ERR) exit(70);
 }
 
 int main(int argc, const char* argv[]){

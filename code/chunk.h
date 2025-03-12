@@ -34,3 +34,4 @@ void writeChunk(Chunk* chunk, uint8_t byte, int line);
 void freeChunk(Chunk* chunk);
 int addConstant(Chunk* chunk, Value value);
 #endif
+

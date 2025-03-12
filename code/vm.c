@@ -4,10 +4,15 @@
 #include "stdio.h"
 #include "debug.h"
 #include "stdarg.h"
-VM vm;
+#include "string.h"
+#include "object.h"
+#include "memory.h"
+
+extern VM vm;
 
 static void resetStack(){
   vm.stackTop = vm.stack;
+  vm.objects = NULL;
 }
 
 static void runtimeError(const char* format, ...){
@@ -38,11 +43,25 @@ static bool isFalsey(Value value){
   return IS_NIL(value) || (IS_BOOL(value)) && !AS_BOOL(value);
 }
 
+static void concatenate(){
+  ObjString* b = AS_STRING(pop());
+  ObjString* a = AS_STRING(pop());
+
+  int length = a->length + b->length;
+  char* chars ALLOCATE(char, length + 1);
+  memcpy(chars, a->chars, a->length);
+  memcpy(chars + a->length, b->chars, b->length);
+  chars[length] = '\0';
+  ObjString* res = takeString(chars, length);
+  push(OBJ_VAL(result));
+}
+
 void initVM(){
   resetStack();
 }
 
 void freeVM(){
+  freeObjects();
 }
 
 static InterpretResult run(){
@@ -52,7 +71,7 @@ static InterpretResult run(){
     do{ \
     if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))){ \
       runtimeError("Opperant must be a number."); \
-      return INTERPRET_COMPILE_ERROR; \
+      return INTERPRET_COMPILE_ERR; \
     } \
     double a = AS_NUMBER(pop()); \
     double b = AS_NUMBER(pop()); \
@@ -87,14 +106,22 @@ static InterpretResult run(){
         push(NUMBER_VAL(-AS_NUMBER(pop())));
         break;
       case OP_NOT: push(BOOL_VAL(isFalsey(pop())));
-      case OP_ADD: BINARY_OP(NUMBER_VAL, +); break;
+      case OP_ADD: {
+        if (IS_STRING(peek(0)) && IS_STRING(peek(1))) concatenate();
+        else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) BINARY_OP(NUMBER_VAL, +);
+        else{ 
+          runtimeError("Operands must be of type string or num.");
+          return INTERPRET_RUNTIME_ERROR;
+        }
+        break;
+      }
       case OP_SUBTRACT: BINARY_OP(NUMBER_VAL, -); break;
       case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
       case OP_DEVIDE: BINARY_OP(NUMBER_VAL, /); break;
       case OP_EQUAL:
         Value b = pop();
         Value a = pop();
-        push(BOOL_VAL(ValuesEqual(a, b)));
+        push(BOOL_VAL(valuesEqual(a, b)));
         break;
       case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
       case OP_LESS: BINARY_OP(BOOL_VAL, <); break;
