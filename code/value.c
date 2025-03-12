@@ -31,20 +31,20 @@ void printValue(Value value){
       break;
     case NIL_TYPE: printf("nil"); break;
     case NUMBER_TYPE: printf("%g", AS_NUMBER(value)); break; 
-    case OBJ_TYPE: printObject(Value value);
+    case OBJ_TYPE: printObject(value);
   }
  
 }
 
-bool valueEqual(Value a, Value b){
+bool valuesEquals(Value a, Value b){
   if (a.type != b.type) return false;
   switch(a.type){
     case BOOL_TYPE: return AS_BOOL(a) == AS_BOOL(b);
     case NIL_TYPE: return true;
     case NUMBER_TYPE: return AS_NUMBER(a) == AS_NUMBER(b);
-    case VAL_TYPE: {
-      ObjString aString = AS_STRING(a);
-      ObjString bString = AS_STRING(b);
+    case OBJ_TYPE: {
+      ObjString* aString = AS_STRING(a);
+      ObjString* bString = AS_STRING(b);
       return aString->length == bString->length && memcmp(aString->chars, bString->chars, aString->length) == 0;
     }
     default: return false;

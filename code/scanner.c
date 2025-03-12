@@ -6,7 +6,7 @@
 
 typedef struct{
   const char* start;
-  const cahr* current;
+  const char* current;
   int line;
 } Scanner;
 
@@ -33,7 +33,7 @@ static Token errorToken(const char* message){
   token.line = scanner.line;
   return token;
 }
-static char advence(){
+static char advance(){
   return *(scanner.current++);
 }
 
@@ -46,7 +46,7 @@ static char peek(){
 }
 static char peekNext(){
   if(isAtEnd()) return '\0';
-  return *(Scanner.current + 1);
+  return *(scanner.current + 1);
 }
 static void skipWhitespace(){
   for(;;){
@@ -85,17 +85,16 @@ static Token string() {
 }
 
 static bool isDigit(char c){
-  return c >= '0' && c <= 9;
+  return c >= '0' && c <= '9';
 }
 
 static bool isAlpha(char c){
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c<= 'Z') || c == "_";
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c<= 'Z') || c == '_';
 }
 
 static Token number(){
   while(isDigit(peek())) advance();
-
-  if peek() == "." && isDigit(peekNext()){
+  if(peek() == '.' && isDigit(peekNext())){
     advance();
     while(isDigit(peek())) advance();
   }
@@ -155,16 +154,16 @@ Token scanToken(){
   skipWhitespace();
   scanner.start = scanner.current;
   if(isAtEnd()) return makeToken(TOKEN_EOF);
-  char c = advence();
+  char c = advance();
   if(isAlpha(c)) return identifier();
   if(isDigit(c)) return number();
   switch(c){
     case '(': return makeToken(TOKEN_LEFT_PAREN);
-    case ')': return makeToken(TOKEN_RIGHT_AREN);
+    case ')': return makeToken(TOKEN_RIGHT_PAREN);
     case '{': return makeToken(TOKEN_LEFT_BRACE);
     case '}': return makeToken(TOKEN_RIGHT_BRACE);
-    case ';': return makeToken(TOKEN_SEIMCOLON);
-    case ',': return makeToken(TOKEN_COMA);
+    case ';': return makeToken(TOKEN_SEMICOLON);
+    case ',': return makeToken(TOKEN_COMMA);
     case '.': return makeToken(TOKEN_DOT);
     case '-': return makeToken(TOKEN_MINUS);
     case '+': return makeToken(TOKEN_PLUS);

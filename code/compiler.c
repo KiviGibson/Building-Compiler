@@ -46,11 +46,11 @@ static Chunk* currentChunk(){
 }
 
 static void errorAt(Token* token, const char* message){
-  fprint(stderr, "[line %d] Error", token->line);
+  fprintf(stderr, "[line %d] Error", token->line);
   if(token->type == TOKEN_EOF){
-    fprintf(stderr, "at end");
+    fprintf(stderr, " at end");
   }else if (token->type != TOKEN_ERROR){
-    fprintf(stderr, " at ''%.*s", token->length, token->start);
+    fprintf(stderr, " at '%.*s'", token->length, token->start);
   } 
   
   fprintf(stderr, ": %s\n", message);
@@ -64,7 +64,7 @@ static void error(const char* message){
 }
 
 static void errorAtCurrent(const char* message){
-  errorAt(&parser.current.previous, message);
+  errorAt(&parser.current, message);
 }
 
 static void advance(){
@@ -77,7 +77,7 @@ static void advance(){
   }
 }
 
-static void consume(TokenTyoe type, const char* message){
+static void consume(TokenType type, const char* message){
   if(parser.current.type == type){
     advance();
     return;
@@ -86,7 +86,7 @@ static void consume(TokenTyoe type, const char* message){
 }
 
 static void emitByte(uint8_t byte){
-  writeChunk(currentChunk(), byte, parses.previous.line);
+  writeChunk(currentChunk(), byte, parser.previous.line);
 }
 
 static void emitBytes(uint8_t byte_left, uint8_t byte_right){
@@ -107,18 +107,24 @@ static void endCompiler(){
   #endif /* ifdef DEBUG_PRINT_CODE */
 }
 static void expression();
-static ParseRule getRule(TokenType type);
+static ParseRule* getRule(TokenType type);
 static void parsePrecendence(Precendence precendence);
+static void string();
+static void number();
+static void literal();
+static void grouping();
+static void binary();
 
 static void unary(){
   TokenType operatorType = parser.previous.type;
-  parsePrecedence(PREC_UNARY);
+  parsePrecendence(PREC_UNARY);
   switch (operatorType) {
     case TOKEN_BANG: emitByte(OP_NOT); break;
     case TOKEN_MINUS: emitByte(OP_NEGATE); break;
     defult: return;
   }
 }
+
 
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
@@ -136,7 +142,7 @@ ParseRule rules[] = {
   [TOKEN_BANG_EQUAL]    = {NULL,     binary,   PREC_EQUALITY},
   [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EQUAL_EQUAL]   = {NULL,     binary,   PREC_EQUALITY},
-  [TOKEN_GREATER]       = {NULL,     bianry,   PREC_COMPARISON},
+  [TOKEN_GREATER]       = {NULL,     binary,   PREC_COMPARISON},
   [TOKEN_GREATER_EQUAL] = {NULL,     binary,   PREC_COMPARISON},
   [TOKEN_LESS]          = {NULL,     binary,   PREC_COMPARISON},
   [TOKEN_LESS_EQUAL]    = {NULL,     binary,   PREC_COMPARISON},
@@ -166,11 +172,11 @@ ParseRule rules[] = {
 static void binary(){
   TokenType operator = parser.previous.type;
   ParseRule* rule = getRule(operator);
-  parseProcedure((Precedence)(rule->precendence+1));
+  parsePrecendence((Precendence)(rule->precendence+1));
 
   switch(operator){
     case TOKEN_PLUS: emitByte(OP_ADD); break;
-    case TOKEN_MINUS: emitByte(OP_MINUS); break;
+    case TOKEN_MINUS: emitByte(OP_SUBTRACT); break;
     case TOKEN_STAR: emitByte(OP_MULTIPLY); break;
     case TOKEN_SLASH: emitByte(OP_DEVIDE); break;
     case TOKEN_EQUAL_EQUAL: emitByte(OP_EQUAL); break;
@@ -192,7 +198,7 @@ static void literal(){
   }
 }
 
-static void parsePrecendence(Precedence precedence){
+static void parsePrecendence(Precendence precendence){
   advance();
   ParseFn prefixRule = getRule(parser.previous.type) -> prefix;
   if(prefixRule == NULL){
@@ -208,8 +214,8 @@ static void parsePrecendence(Precedence precedence){
   }
 }
 
-static ParseRule getRule(TokenType type){
-  return %rules[type];
+static ParseRule* getRule(TokenType type){
+  return &rules[type];
 }
 
 static void grouping(){
@@ -240,11 +246,11 @@ static void string() {
 }
 
 static void expression(){
-  parsePrecedence(PREC_ASSIGMENT);
+  parsePrecendence(PREC_ASSIGMENT);
 }
 
 bool compile(const char* source, Chunk* chunk){
-  initScaner(source);
+  initScanner(source);
   compilingChunk = chunk;
   parser.hadError = false;
   parser.panicMode = false;

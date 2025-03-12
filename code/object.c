@@ -6,8 +6,10 @@
 #include "value.h"
 #include "vm.h"
 
-#define ALLOCATE_OBJ(tpe, objectType) (type*) allocateObject \
-  (sizeof(type), objectType)
+#define ALLOCATE_OBJ(type, objectType) (type*)allocateObject(sizeof(type), objectType)
+
+extern VM vm;
+
 
 static Obj* allocateObject(size_t size, ObjType type){
   Obj* object = (Obj*)reallocate(NULL, 0, size);
@@ -21,7 +23,7 @@ static Obj* allocateObject(size_t size, ObjType type){
 static ObjString* allocateString(char* chars, int length){
   ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
   string->length = length;
-  strink->chars = chars;
+  string->chars = chars;
   return string;
 }
 

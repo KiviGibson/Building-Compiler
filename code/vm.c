@@ -8,7 +8,7 @@
 #include "object.h"
 #include "memory.h"
 
-extern VM vm;
+VM vm;
 
 static void resetStack(){
   vm.stackTop = vm.stack;
@@ -36,7 +36,7 @@ Value pop(){
   return *(--vm.stackTop);
 }
 Value peek(int distance){
-  return vm.StackTop[-1 - distance];
+  return vm.stackTop[-1 - distance];
 }
 
 static bool isFalsey(Value value){
@@ -48,12 +48,12 @@ static void concatenate(){
   ObjString* a = AS_STRING(pop());
 
   int length = a->length + b->length;
-  char* chars ALLOCATE(char, length + 1);
+  char* chars = ALLOCATE(char, length + 1);
   memcpy(chars, a->chars, a->length);
   memcpy(chars + a->length, b->chars, b->length);
   chars[length] = '\0';
   ObjString* res = takeString(chars, length);
-  push(OBJ_VAL(result));
+  push(OBJ_VAL(res));
 }
 
 void initVM(){
@@ -81,7 +81,7 @@ static InterpretResult run(){
   for(;;){
     #ifdef DEBUG_TRACE_EXECUTION
       printf("---> ");
-      for(Value* slot = vm.stack; slot <vm.stackTop; slot++){
+      for(Value* slot = vm.stack; slot < vm.stackTop; slot++){
         printf("[");
         printValue(*slot);
         printf("]");
@@ -95,13 +95,13 @@ static InterpretResult run(){
         Value constant = READ_CONSTANT();
         push(constant);
       break;
-      case OP_NIL: push(NIL_VAL); break;
+      case OP_NIL: push(NIL_VAL(0)); break;
       case OP_TRUE: push(BOOL_VAL(true)); break;
       case OP_FALSE: push(BOOL_VAL(false)); break;
       case OP_NEGATE:
         if(!IS_NUMBER(peek(0))){
           runtimeError("Operrand must be a number.");
-          return INTERPRET_RUNTIME_ERROR;
+          return INTERPRET_RUNTIME_ERR;
         }
         push(NUMBER_VAL(-AS_NUMBER(pop())));
         break;
@@ -111,7 +111,7 @@ static InterpretResult run(){
         else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) BINARY_OP(NUMBER_VAL, +);
         else{ 
           runtimeError("Operands must be of type string or num.");
-          return INTERPRET_RUNTIME_ERROR;
+          return INTERPRET_RUNTIME_ERR;
         }
         break;
       }
@@ -121,7 +121,7 @@ static InterpretResult run(){
       case OP_EQUAL:
         Value b = pop();
         Value a = pop();
-        push(BOOL_VAL(valuesEqual(a, b)));
+        push(BOOL_VAL(valuesEquals(a, b)));
         break;
       case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
       case OP_LESS: BINARY_OP(BOOL_VAL, <); break;
@@ -146,9 +146,7 @@ InterpretResult interpret(const char* source){
   }
   
   InterpretResult result = run();
-
   freeChunk(&chunk);
   return result;
 }
-
 

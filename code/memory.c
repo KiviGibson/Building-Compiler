@@ -2,6 +2,8 @@
 #include "memory.h"
 #include "vm.h"
 
+extern VM vm;
+
 void* reallocate(void* pointer, size_t oldSize, size_t newSize){
   if (newSize == 0){
     free(pointer);
@@ -27,6 +29,6 @@ void freeObjects(){
   while(obj != NULL){
     Obj* next = obj->next;
     freeObject(obj);
-    object = next;
+    obj = next;
   }
 }

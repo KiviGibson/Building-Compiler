@@ -24,7 +24,7 @@ typedef struct{
 
 #define BOOL_VAL(value) ((Value){BOOL_TYPE, {.boolean = value}})
 #define NIL_VAL(value) ((Value){NIL_TYPE, {.number = 0}})
-#define NUMBER_VAL(value) ((Value){NUMBER_VAL,{.number = value}})
+#define NUMBER_VAL(value) ((Value){NUMBER_TYPE,{.number = value}})
 #define OBJ_VAL(object) ((Value){OBJ_TYPE,{.obj = (Obj*)object }})
 
 #define AS_BOOL(value) (value).as.boolean
@@ -42,7 +42,7 @@ typedef struct{
   Value* values;
 } ValueArray;
 
-bool valueEquals(Value a, Value B);
+bool valuesEquals(Value a, Value B);
 void initValueArray(ValueArray* array);
 void writeValueArray(ValueArray* array, Value value);
 void freeValueArray(ValueArray* array);
